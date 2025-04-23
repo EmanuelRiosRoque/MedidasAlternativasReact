@@ -14,8 +14,8 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Convenios',
-        href: '/convenios',
+        title: 'Registro solicitud',
+        href: '/registro',
         icon: FileIcon,
     },
 ];

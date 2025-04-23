@@ -14,7 +14,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
 });
-Route::resource('convenios',ConveniosController::class);
+Route::get('/registro', function () {
+    return Inertia::render('RegistroSolicitud');
+})->middleware(['auth', 'verified'])->name('registro');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

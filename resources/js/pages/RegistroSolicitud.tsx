@@ -3,12 +3,13 @@ import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { usePage } from '@inertiajs/react';
 import { BreadcrumbItem, type User } from '@/types';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectItem } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import Tabs from './components/shared/Tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import CampoRadio from './convenios/components/ui/form/CampoRadio';
+import CampoInput from './convenios/components/ui/form/CampoInput';
+import CampoSelect from './convenios/components/ui/form/CampoSelect';
+import CampoFile from './convenios/components/ui/form/CampoFile';
+import { useDatosSolicitante } from './convenios/hooks/useDatosSolicitante';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -31,13 +32,56 @@ export default function RegistroSolicitud() {
   const [canalizado, setCanalizado] = useState('');
   const [institucion, setInstitucion] = useState('');
   const [ticket, setTicket] = useState('');
-  const [tipoPersona, setTipoPersona] = useState('');
-  const [representante, setRepresentante] = useState('');
+  const [oficio, setOficio] = useState<File | null>(null);
+  
+    const {
+  tipoPersona, setTipoPersona,
+  representante, setRepresentante,
+  identificacion, setIdentificacion,
+  adjuntoInstrumento, setAdjuntoInstrumento,
+  archivoInstrumento, setArchivoInstrumento,
+  esApoderado, setEsApoderado,
+  archivoApoderado, setArchivoApoderado,
+  esEstatutos, setEsEstatutos,
+  archivoEstatutos, setArchivoEstatutos,
+  personaFisica, setPersonaFisica,
+  personaMoral, setPersonaMoral,
+  fileResetKey,
+  limpiar: limpiarDatosSolicitante,
+} = useDatosSolicitante();
 
 
-  const [adjuntoInstrumento, setAdjuntoInstrumento] = useState(false);
-  const [esApoderado, setEsApoderado] = useState(false);
-  const [esEstatutos, setEsEstatutos] = useState(false);
+  // funciones
+  const guardarTodo = () => {
+    const datosCompletos = {
+      generales: {
+        modalidad,
+        materia,
+        canalizado,
+        ticket: modalidad === 'En Línea' ? ticket : null,
+        institucion: canalizado === 'Si' ? institucion : null,
+        oficio: canalizado === 'Si' ? oficio?.name || null : null, 
+      },
+      solicitante: {
+        tipoPersona,
+        ...(tipoPersona === 'fisica'
+          ? { ...personaFisica }
+          : { ...personaMoral }),
+        representante,
+        documentosSolicitante: {
+          identificacion: identificacion?.name || null,
+          oficio: canalizado === 'Si' ? oficio?.name || null : null,
+          instrumentoNotarial: adjuntoInstrumento ? archivoInstrumento?.name || null : null,
+          poderLegal: esApoderado ? archivoApoderado?.name || null : null,
+          estatutos: esEstatutos ? archivoEstatutos?.name || null : null,
+        },
+      },
+    };
+  
+    console.log('🗂️ Datos completos y organizados:', datosCompletos);
+    limpiarDatosSolicitante();
+
+  };
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -65,428 +109,454 @@ export default function RegistroSolicitud() {
                 { id: 3, label: 'Invitado' }
               ]} />
 
-              <div className="bg-white dark:bg-neutral-900 shadow-md rounded-xl p-6">
-                {tab === 1 && (
-                  <div className='grid grid-cols-1 md:grid-cols-6 gap-6'>
+              <div className="bg-white dark:bg-neutral-900 shadow-md rounded-xl max-w-4xl p-6">
+              <div className={tab === 1 ? '' : 'hidden'}>
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
                     <div className="md:col-span-1">
-                      <Label className="mb-2 block">Modalidad</Label>
-                      <RadioGroup value={modalidad} onValueChange={setModalidad}>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Presencial" id="presencial" />
-                          <Label htmlFor="presencial">Presencial</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="En Línea" id="en-linea" />
-                          <Label htmlFor="en-linea">En Línea</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-
-
-                    <div className="md:col-span-1">
-                      <Label className="mb-2 block">Materia</Label>
-                      <RadioGroup value={materia} onValueChange={setMateria}>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Civil Mercantil" id="civil" />
-                          <Label htmlFor="civil">Civil Mercantil</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Familiar" id="familiar" />
-                          <Label htmlFor="familiar">Familiar</Label>
-                        </div>
-                      </RadioGroup>
+                      <CampoRadio
+                        label="Modalidad"
+                        name="modalidad"
+                        value={modalidad}
+                        onChange={setModalidad}
+                        options={[
+                          { label: "Presencial", value: "Presencial" },
+                          { label: "En Línea", value: "En Línea" }
+                        ]}
+                      />
                     </div>
 
                     <div className="md:col-span-1">
-                      <Label className="mb-2 block">¿Canalizado?</Label>
-                      <RadioGroup value={canalizado} onValueChange={setCanalizado}>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Si" id="si" />
-                          <Label htmlFor="si">Sí</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id="no" />
-                          <Label htmlFor="no">No</Label>
-                        </div>
-                      </RadioGroup>
+                      <CampoRadio
+                        label="Materia"
+                        name="materia"
+                        value={materia}
+                        onChange={setMateria}
+                        options={[
+                          { label: "Civil Mercantil", value: "Civil Mercantil" },
+                          { label: "Familiar", value: "Familiar" }
+                        ]}
+                      />
+                    </div>
+
+                    <div className="md:col-span-1">
+                      <CampoRadio
+                        label="¿Canalizado?"
+                        name="canalizado"
+                        value={canalizado}
+                        onChange={setCanalizado}
+                        options={[
+                          { label: "Sí", value: "Si" },
+                          { label: "No", value: "No" }
+                        ]}
+                      />
                     </div>
 
                     <div className="md:col-span-3">
-                      {modalidad === 'En Línea' && (
-                        <div>
-                          <Label htmlFor="ticket" className="block mb-2">Número de Ticket</Label>
-                          <Input
-                            id="ticket"
-                            type="text"
-                            value={ticket}
-                            onChange={(e) => setTicket(e.target.value)}
-                            placeholder="Ingresa el número de ticket"
-                          />
-                        </div>
+                      {modalidad === "En Línea" && (
+                        <CampoInput
+                          id="ticket"
+                          label="Número de Ticket"
+                          placeholder="Ingresa el número de ticket"
+                          value={ticket}
+                          onChange={(e) => setTicket(e.target.value)}
+                        />
                       )}
                     </div>
 
-                    {canalizado === 'Si' && (
+                    {canalizado === "Si" && (
                       <div className="grid md:grid-cols-2 gap-4 col-span-full">
-                        <div>
-                          <Label className="mb-2 block">Institución</Label>
-                          <Select value={institucion} onValueChange={setInstitucion}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una institución" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="CDHDF">CDHDF</SelectItem>
-                                <SelectItem value="DIF">DIF</SelectItem>
-                                <SelectItem value="Consejería Jurídica">Consejería Jurídica</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <CampoSelect
+                          label="Institución"
+                          value={institucion}
+                          onChange={setInstitucion}
+                          options={[
+                            { label: "CDHDF", value: "CDHDF" },
+                            { label: "DIF", value: "DIF" },
+                            { label: "Consejería Jurídica", value: "Consejería Jurídica" }
+                          ]}
+                        />
 
-                        <div>
-                          <Label htmlFor="archivo" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                            Subir documento
-                          </Label>
-                          <input
-                            id="archivo"
-                            type="file"
-                            className="block w-full text-sm text-neutral-700 dark:text-neutral-200 file:rounded-md file:border-0 file:bg-emerald-600 file:px-2 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700 cursor-pointer"
-                          />
-                        </div>
+                    <CampoFile
+                      key={`oficio-${canalizado}`}
+                      id="oficio"
+                      label="Oficio"
+                      onChange={(e) => setOficio(e.target.files?.[0] || null)}
+                    />
+
+
+
                       </div>
                     )}
-                  </div>
-                )}
 
-                {tab === 2 && (
+
+                  </div>
+                  </div>
+
+                  <div className={tab === 2 ? '' : 'hidden'}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
-                      <Label className="mb-2 block">Tipo persona</Label>
-                      <RadioGroup value={tipoPersona} onValueChange={setTipoPersona}>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="fisica" id="fisica" />
-                            <Label htmlFor="fisica">Física</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="moral" id="moral" />
-                            <Label htmlFor="moral">Moral</Label>
-                          </div>
-                        </div>
-                      </RadioGroup>
+                      <CampoRadio
+                        label="Tipo persona"
+                        name="tipoPersona"
+                        value={tipoPersona}
+                        onChange={setTipoPersona}
+                        options={[
+                          { label: 'Física', value: 'fisica' },
+                          { label: 'Moral', value: 'moral' }
+                        ]}
+                      />
                     </div>
 
                     {tipoPersona === 'fisica' && (
                       <>
-                        <div>
-                          <Label htmlFor="nombre">Nombre del solicitante</Label>
-                          <Input id="nombre" type="text" placeholder="Nombre completo" />
-                        </div>
+                        <CampoInput
+                          id="nombre"
+                          label="Nombre del solicitante"
+                          placeholder="Nombre completo"
+                          value={personaFisica.nombre}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, nombre: e.target.value })
+                          }
+                        />
 
-                        <div>
-                          <Label htmlFor="sexo">Sexo</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una opción" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="masculino">Masculino</SelectItem>
-                                <SelectItem value="femenino">Femenino</SelectItem>
-                                <SelectItem value="otro">Otro</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <CampoSelect
+                          label="Sexo"
+                          value={personaFisica.sexo}
+                          onChange={(val) =>
+                            setPersonaFisica({ ...personaFisica, sexo: val })
+                          }
+                          options={[
+                            { label: 'Masculino', value: 'masculino' },
+                            { label: 'Femenino', value: 'femenino' },
+                            { label: 'Otro', value: 'otro' }
+                          ]}
+                        />
 
-                        <div>
-                          <Label htmlFor="edad">Edad</Label>
-                          <Input id="edad" type="number" placeholder="Edad" />
-                        </div>
+                        <CampoInput
+                          id="edad"
+                          label="Edad"
+                          type="number"
+                          placeholder="Edad"
+                          value={personaFisica.edad}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, edad: e.target.value })
+                          }
+                        />
 
-                        <div>
-                          <Label htmlFor="fecha_nacimiento">Fecha de nacimiento</Label>
-                          <Input id="fecha_nacimiento" type="date" />
-                        </div>
+                        <CampoInput
+                          id="fecha_nacimiento"
+                          label="Fecha de nacimiento"
+                          type="date"
+                          value={personaFisica.fechaNacimiento}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, fechaNacimiento: e.target.value })
+                          }
+                        />
 
-                        <div>
-                          <Label htmlFor="escolaridad">Escolaridad</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona escolaridad" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="primaria">Primaria</SelectItem>
-                                <SelectItem value="secundaria">Secundaria</SelectItem>
-                                <SelectItem value="preparatoria">Preparatoria</SelectItem>
-                                <SelectItem value="universidad">Universidad</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <CampoSelect
+                          label="Escolaridad"
+                          value={personaFisica.escolaridad}
+                          onChange={(val) =>
+                            setPersonaFisica({ ...personaFisica, escolaridad: val })
+                          }
+                          options={[
+                            { label: 'Primaria', value: 'primaria' },
+                            { label: 'Secundaria', value: 'secundaria' },
+                            { label: 'Preparatoria', value: 'preparatoria' },
+                            { label: 'Universidad', value: 'universidad' }
+                          ]}
+                        />
 
-                        <div>
-                          <Label htmlFor="ocupacion">Ocupación</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona ocupación" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="empleado">Empleado</SelectItem>
-                                <SelectItem value="desempleado">Desempleado</SelectItem>
-                                <SelectItem value="estudiante">Estudiante</SelectItem>
-                                <SelectItem value="otro">Otro</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <CampoSelect
+                          label="Ocupación"
+                          value={personaFisica.ocupacion}
+                          onChange={(val) =>
+                            setPersonaFisica({ ...personaFisica, ocupacion: val })
+                          }
+                          options={[
+                            { label: 'Empleado', value: 'empleado' },
+                            { label: 'Desempleado', value: 'desempleado' },
+                            { label: 'Estudiante', value: 'estudiante' },
+                            { label: 'Otro', value: 'otro' }
+                          ]}
+                        />
 
-                        <div>
-                          <Label htmlFor="nacionalidad">Nacionalidad</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona nacionalidad" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="mexicana">Mexicana</SelectItem>
-                                <SelectItem value="extranjera">Extranjera</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <CampoSelect
+                          label="Nacionalidad"
+                          value={personaFisica.nacionalidad}
+                          onChange={(val) =>
+                            setPersonaFisica({ ...personaFisica, nacionalidad: val })
+                          }
+                          options={[
+                            { label: 'Mexicana', value: 'mexicana' },
+                            { label: 'Extranjera', value: 'extranjera' }
+                          ]}
+                        />
 
-                        <div>
-                          <Label htmlFor="tipo_domicilio">Tipo de domicilio</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona tipo de domicilio" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="propio">Propio</SelectItem>
-                                <SelectItem value="rentado">Rentado</SelectItem>
-                                <SelectItem value="otro">Otro</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <CampoSelect
+                          label="Tipo de domicilio"
+                          value={personaFisica.tipoDomicilio}
+                          onChange={(val) =>
+                            setPersonaFisica({ ...personaFisica, tipoDomicilio: val })
+                          }
+                          options={[
+                            { label: 'Propio', value: 'propio' },
+                            { label: 'Rentado', value: 'rentado' },
+                            { label: 'Otro', value: 'otro' }
+                          ]}
+                        />
 
-                        <div>
-                          <Label htmlFor="calle">Calle</Label>
-                          <Input id="calle" type="text" placeholder="Nombre de la calle" />
-                        </div>
+                        <CampoInput
+                          id="calle"
+                          label="Calle"
+                          placeholder="Nombre de la calle"
+                          value={personaFisica.calle}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, calle: e.target.value })
+                          }
+                        />
 
-                        <div>
-                          <Label htmlFor="colonia">Colonia</Label>
-                          <Input id="colonia" type="text" placeholder="Colonia" />
-                        </div>
+                        <CampoInput
+                          id="colonia"
+                          label="Colonia"
+                          placeholder="Colonia"
+                          value={personaFisica.colonia}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, colonia: e.target.value })
+                          }
+                        />
 
-                        <div>
-                          <Label htmlFor="cp">Código Postal</Label>
-                          <Input id="cp" type="text" placeholder="C.P." />
-                        </div>
+                        <CampoInput
+                          id="cp"
+                          label="Código Postal"
+                          placeholder="C.P."
+                          value={personaFisica.cp}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, cp: e.target.value })
+                          }
+                        />
 
-                        <div>
-                          <Label htmlFor="municipio">Municipio</Label>
-                          <Input id="municipio" type="text" placeholder="Municipio o alcaldía" />
-                        </div>
+                        <CampoInput
+                          id="municipio"
+                          label="Municipio"
+                          placeholder="Municipio o alcaldía"
+                          value={personaFisica.municipio}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, municipio: e.target.value })
+                          }
+                        />
 
-                        <div>
-                          <Label htmlFor="entidad">Entidad federativa</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una entidad" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="cdmx">CDMX</SelectItem>
-                                <SelectItem value="edomex">Estado de México</SelectItem>
-                                <SelectItem value="otro">Otro</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <CampoSelect
+                          label="Entidad federativa"
+                          value={personaFisica.entidad}
+                          onChange={(val) =>
+                            setPersonaFisica({ ...personaFisica, entidad: val })
+                          }
+                          options={[
+                            { label: 'CDMX', value: 'cdmx' },
+                            { label: 'Estado de México', value: 'edomex' },
+                            { label: 'Otro', value: 'otro' }
+                          ]}
+                        />
 
-                        <div>
-                          <Label htmlFor="email">Correo electrónico</Label>
-                          <Input id="email" type="email" placeholder="correo@ejemplo.com" />
-                        </div>
+                        <CampoInput
+                          id="email"
+                          label="Correo electrónico"
+                          type="email"
+                          placeholder="correo@ejemplo.com"
+                          value={personaFisica.correo}
+                          onChange={(e) =>
+                            setPersonaFisica({ ...personaFisica, correo: e.target.value })
+                          }
+                        />
                       </>
                     )}
 
                     {tipoPersona === 'moral' && (
                       <>
-                        <div>
-                          <Label htmlFor="razon_social">Razón social</Label>
-                          <Input id="razon_social" type="text" placeholder="Razón social de la persona moral" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="rfc">RFC</Label>
-                          <Input id="rfc" type="text" placeholder="RFC" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="instrumento">Instrumento notarial</Label>
-                          <Input id="instrumento" type="text" placeholder="Instrumento notarial" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="fecha_instrumento">Fecha del instrumento notarial</Label>
-                          <Input id="fecha_instrumento" type="date" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="telefono">Teléfono</Label>
-                          <Input id="telefono" type="tel" placeholder="Teléfono" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="calle_moral">Calle</Label>
-                          <Input id="calle_moral" type="text" placeholder="Calle de la persona moral" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="colonia_moral">Colonia</Label>
-                          <Input id="colonia_moral" type="text" placeholder="Colonia de la persona moral" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="cp_moral">Código postal</Label>
-                          <Input id="cp_moral" type="text" placeholder="C.P." />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="municipio_moral">Municipio</Label>
-                          <Input id="municipio_moral" type="text" placeholder="Municipio o alcaldía" />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="entidad_moral">Entidad federativa</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una entidad" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="cdmx">CDMX</SelectItem>
-                                <SelectItem value="edomex">Estado de México</SelectItem>
-                                <SelectItem value="otro">Otro</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="correo_moral">Correo electrónico</Label>
-                          <Input id="correo_moral" type="email" placeholder="correo@ejemplo.com" />
-                        </div>
+                        <CampoInput
+                          id="razon_social"
+                          label="Razón social"
+                          placeholder="Razón social de la persona moral"
+                          value={personaMoral.razonSocial}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, razonSocial: e.target.value })}
+                        />
+                        <CampoInput
+                          id="rfc"
+                          label="RFC"
+                          placeholder="RFC"
+                          value={personaMoral.rfc}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, rfc: e.target.value })}
+                        />
+                        <CampoInput
+                          id="instrumento"
+                          label="Instrumento notarial"
+                          placeholder="Instrumento notarial"
+                          value={personaMoral.instrumento}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, instrumento: e.target.value })}
+                        />
+                        <CampoInput
+                          id="fecha_instrumento"
+                          label="Fecha del instrumento notarial"
+                          type="date"
+                          value={personaMoral.fechaInstrumento}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, fechaInstrumento: e.target.value })}
+                        />
+                        <CampoInput
+                          id="telefono"
+                          label="Teléfono"
+                          type="tel"
+                          placeholder="Teléfono"
+                          value={personaMoral.telefono}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, telefono: e.target.value })}
+                        />
+                        <CampoInput
+                          id="calle_moral"
+                          label="Calle"
+                          placeholder="Calle de la persona moral"
+                          value={personaMoral.calle}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, calle: e.target.value })}
+                        />
+                        <CampoInput
+                          id="colonia_moral"
+                          label="Colonia"
+                          placeholder="Colonia de la persona moral"
+                          value={personaMoral.colonia}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, colonia: e.target.value })}
+                        />
+                        <CampoInput
+                          id="cp_moral"
+                          label="Código postal"
+                          placeholder="C.P."
+                          value={personaMoral.cp}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, cp: e.target.value })}
+                        />
+                        <CampoInput
+                          id="municipio_moral"
+                          label="Municipio"
+                          placeholder="Municipio o alcaldía"
+                          value={personaMoral.municipio}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, municipio: e.target.value })}
+                        />
+                        <CampoSelect
+                          label="Entidad federativa"
+                          value={personaMoral.entidad}
+                          onChange={(val) => setPersonaMoral({ ...personaMoral, entidad: val })}
+                          options={[
+                            { label: 'CDMX', value: 'cdmx' },
+                            { label: 'Estado de México', value: 'edomex' },
+                            { label: 'Otro', value: 'otro' }
+                          ]}
+                        />
+                        <CampoInput
+                          id="correo_moral"
+                          label="Correo electrónico"
+                          type="email"
+                          placeholder="correo@ejemplo.com"
+                          value={personaMoral.correo}
+                          onChange={(e) => setPersonaMoral({ ...personaMoral, correo: e.target.value })}
+                        />
                       </>
                     )}
 
-                    <div className=' col-span-2'>
-                      <Label htmlFor="identificacion" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                        Subir identificacion
-                      </Label>
-                      <input
-                        id="identificacion"
-                        type="file"
-                        className="block w-full text-sm text-neutral-700 dark:text-neutral-200 file:rounded-md file:border-0 file:bg-emerald-600 file:px-2 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700 cursor-pointer"
-                      />
+                  <div className="col-span-2">
+                    <CampoFile
+                      key={`identificacion-${fileResetKey}`}
+                      id="identificacion"
+                      label="Subir identificación"
+                      onChange={(e) => setIdentificacion(e.target.files?.[0] || null)}
+                    />
+                  </div>
+
+                  <div className="md:col-span-1">
+                    <CampoRadio
+                      label="¿Es usted el representante?"
+                      name="representante"
+                      value={representante}
+                      onChange={setRepresentante}
+                      options={[
+                        { label: 'Sí', value: 'si' },
+                        { label: 'No', value: 'no' }
+                      ]}
+                    />
+                  </div>
+
+                  {representante === 'si' && (
+                    <div className="md:col-span-2 flex flex-col gap-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 text-sm font-medium">
+                          <Checkbox
+                            id="opcion1"
+                            checked={adjuntoInstrumento}
+                            onCheckedChange={(checked) => setAdjuntoInstrumento(checked === true)}
+                          />
+                          Adjuntó instrumento notarial
+                        </label>
+                        {adjuntoInstrumento && (
+                          <CampoFile
+                            key={`archivo_instrumento-${fileResetKey}`}
+                            id="archivo_instrumento"
+                            label="Subir archivo"
+                            onChange={(e) => setArchivoInstrumento(e.target.files?.[0] || null)}
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 text-sm font-medium">
+                          <Checkbox
+                            id="opcion2"
+                            checked={esApoderado}
+                            onCheckedChange={(checked) => setEsApoderado(checked === true)}
+                          />
+                          Es apoderado legal
+                        </label>
+                        {esApoderado && (
+                         <CampoFile
+                            key={`archivo_apoderado-${fileResetKey}`}
+                            id="archivo_apoderado"
+                            label="Archivo Apoderado"
+                            onChange={(e) => setArchivoApoderado(e.target.files?.[0] || null)}
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 text-sm font-medium">
+                          <Checkbox
+                            id="opcion3"
+                            checked={esEstatutos}
+                            onCheckedChange={(checked) => setEsEstatutos(checked === true)}
+                          />
+                          Es representante por estatutos
+                        </label>
+                        {esEstatutos && (
+                          <CampoFile
+                            key={`archivo_estatutos-${fileResetKey}`}
+                            id="archivo_estatutos"
+                            label="Subir archivo"
+                            onChange={(e) => setArchivoEstatutos(e.target.files?.[0] || null)}
+                          />
+                        )}
+                      </div>
                     </div>
-
-                    <div className="md:col-span-1">
-                      <Label className="mb-2 block">¿Es usted el representante?</Label>
-                      <RadioGroup value={representante} onValueChange={setRepresentante}>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="si" id="si" />
-                            <Label htmlFor="si">Sí</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="no" id="no" />
-                            <Label htmlFor="no">No</Label>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    {representante === 'si' && (
-  <div className="md:col-span-2 flex flex-col gap-4">
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="opcion1"
-          checked={adjuntoInstrumento}
-          onCheckedChange={(checked) => setAdjuntoInstrumento(checked === true)}
-        />
-        <label htmlFor="opcion1" className="text-sm font-medium leading-none">
-          Adjuntó instrumento notarial
-        </label>
-      </div>
-      {adjuntoInstrumento && (
-        <input
-          type="file"
-          className="block w-full text-sm text-neutral-700 dark:text-neutral-200 file:rounded-md file:border-0 file:bg-emerald-600 file:px-2 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700 cursor-pointer"
-        />
-      )}
-    </div>
-
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="opcion2"
-          checked={esApoderado}
-          onCheckedChange={(checked) => setEsApoderado(checked === true)}
-        />
-        <label htmlFor="opcion2" className="text-sm font-medium leading-none">
-          Es apoderado legal
-        </label>
-      </div>
-      {esApoderado && (
-        <input
-          type="file"
-          className="block w-full text-sm text-neutral-700 dark:text-neutral-200 file:rounded-md file:border-0 file:bg-emerald-600 file:px-2 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700 cursor-pointer"
-        />
-      )}
-    </div>
-
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="opcion3"
-          checked={esEstatutos}
-          onCheckedChange={(checked) => setEsEstatutos(checked === true)}
-        />
-        <label htmlFor="opcion3" className="text-sm font-medium leading-none">
-          Es representante por estatutos
-        </label>
-      </div>
-      {esEstatutos && (
-        <input
-          type="file"
-          className="block w-full text-sm text-neutral-700 dark:text-neutral-200 file:rounded-md file:border-0 file:bg-emerald-600 file:px-2 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700 cursor-pointer"
-        />
-      )}
-    </div>
-  </div>
-)}
-
-
-
-
+                  )}
 
                   </div>
-                )}
+                  </div>
 
 
                 {tab === 3 && <p className="text-sm text-neutral-500">[🧑‍💼 Aquí irán los campos del Invitado]</p>}
               </div>
+            </div>
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={guardarTodo}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-md"
+              >
+                Guardar datos generales
+              </button>
             </div>
           </div>
         </section>
